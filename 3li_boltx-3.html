@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3li_boltx</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --black: #000000;
+    --black2: #0c0c0d;
+    --gold: #d4af37;
+    --gold-light: #f5e2a3;
+    --chrome: #cfd3da;
+    --red: #ff1f3d;
+    --blue: #2b6dff;
+    --purple: #9d2bff;
+    --text: #f3ede0;
+    --text-dim: #8a8378;
+  }
+
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{
+    background: var(--black);
+    font-family:'Cairo', sans-serif;
+    color: var(--text);
+    position:relative;
+    overflow-x:hidden;
+  }
+
+  #streak-canvas{ position:fixed; inset:0; width:100%; height:100%; z-index:0; }
+
+  .vignette{
+    position:fixed; inset:0; z-index:1; pointer-events:none;
+    background: radial-gradient(ellipse at center, transparent 32%, rgba(0,0,0,0.94) 100%);
+  }
+  .grain{
+    position:fixed; inset:0; z-index:2; pointer-events:none; opacity:0.05;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .cine-bar{ position:fixed; left:0; right:0; height:8vh; background:#000; z-index:70; pointer-events:none; }
+  .cine-top{ top:0; }
+  .cine-bottom{ bottom:0; }
+
+  /* ============ بوت-أب إقلاع ============ */
+  #boot{
+    position:fixed; inset:0; z-index:80; background:#000;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+    animation: bootOut 0.6s ease forwards 2.3s;
+  }
+  #boot .line{ font-family:'Orbitron', sans-serif; font-size:11px; letter-spacing:3px; color: var(--gold); opacity:0; animation: bootLine 0.4s ease forwards; text-shadow: 0 0 10px rgba(212,175,55,0.8); }
+  #boot .line:nth-child(1){ animation-delay:0.1s; }
+  #boot .line:nth-child(2){ animation-delay:0.5s; color: var(--blue); text-shadow:0 0 10px rgba(43,109,255,0.7); }
+  #boot .line:nth-child(3){ animation-delay:0.9s; color: var(--purple); text-shadow:0 0 10px rgba(157,43,255,0.7); }
+  #boot .line:nth-child(4){ animation-delay:1.3s; color: var(--red); text-shadow:0 0 10px rgba(255,31,61,0.7); }
+  #boot .bar{ width:220px; height:2px; background:rgba(255,255,255,0.1); overflow:hidden; margin-top:6px; }
+  #boot .bar::after{ content:''; display:block; height:100%; width:0%; background: linear-gradient(90deg, var(--red), var(--blue), var(--purple)); animation: fillBar 1.7s ease forwards 0.6s; box-shadow: 0 0 12px var(--gold); }
+  @keyframes bootLine{ to{ opacity:1; transform:translateY(0); } }
+  @keyframes fillBar{ to{ width:100%; } }
+  @keyframes bootOut{ to{ opacity:0; visibility:hidden; } }
+
+  /* ============ الهيرو ============ */
+  .hero{
+    position:relative; z-index:3;
+    height:100vh; min-height:580px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:0 20px; overflow:hidden;
+  }
+
+  .hero-eyebrow{ font-family:'Orbitron', sans-serif; font-size:10px; letter-spacing:5px; color: var(--gold); margin-bottom:16px; opacity:0; animation: fadeIn 1s ease forwards 2.6s; }
+
+  .hero-logo{
+    font-family:'Orbitron', sans-serif; font-size: clamp(34px,9vw,52px); font-weight:900; letter-spacing:2px;
+    background: linear-gradient(135deg, var(--gold-light), var(--gold) 40%, var(--blue) 75%, var(--purple));
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+    filter: drop-shadow(0 0 20px rgba(212,175,55,0.5));
+    opacity:0; animation: fadeIn 1s ease forwards 2.8s;
+  }
+
+  .hero-sub{ margin-top:14px; color: var(--text-dim); font-size:13.5px; letter-spacing:1px; opacity:0; animation: fadeIn 1s ease forwards 3.1s; }
+
+  @keyframes fadeIn{ to{ opacity:1; } }
+
+  /* السيارة */
+  .road-stage{
+    position:relative; width:100%; max-width:460px; height:270px; margin-top:20px;
+    opacity:0; animation: fadeIn 1s ease forwards 3.3s;
+  }
+  .road-line{
+    position:absolute; bottom:14px; left:0; right:0; height:2px;
+    background: repeating-linear-gradient(90deg, var(--gold) 0 24px, transparent 24px 48px);
+    opacity:0.45;
+  }
+
+  .wind-layer{ position:absolute; inset:0; overflow:visible; pointer-events:none; }
+  .wind-line{
+    position:absolute; height:2px; border-radius:2px;
+    right:52%; opacity:0;
+    animation: windGust 1.1s linear infinite;
+  }
+  @keyframes windGust{
+    0%{ opacity:0; transform: translateX(0) scaleX(0.3); }
+    12%{ opacity:0.9; }
+    75%{ opacity:0.5; }
+    100%{ opacity:0; transform: translateX(-230px) scaleX(1.4); }
+  }
+
+  .car{
+    position:absolute; bottom:0; left:50%; width:320px; max-width:78vw; transform:translateX(-50%) scale(0.85);
+    opacity:0;
+    animation: carArrive 1.3s cubic-bezier(.2,.8,.2,1) forwards 3.6s, carShake 3.5s ease-in-out infinite 5s;
+  }
+  @keyframes carArrive{ to{ opacity:1; transform:translateX(-50%) scale(1); } }
+  @keyframes carShake{ 0%,100%{ transform:translateX(-50%) scale(1) translateY(0); } 50%{ transform:translateX(-50%) scale(1) translateY(-4px); } }
+  .car img{
+    width:100%; display:block;
+    filter: saturate(1.15) contrast(1.15) brightness(0.92) drop-shadow(0 18px 20px rgba(0,0,0,0.8));
+    -webkit-mask-image: radial-gradient(ellipse 60% 70% at 50% 45%, #000 55%, transparent 100%);
+    mask-image: radial-gradient(ellipse 60% 70% at 50% 45%, #000 55%, transparent 100%);
+  }
+  .car::after{
+    content:''; position:absolute; inset:0;
+    background: linear-gradient(120deg, rgba(255,31,61,0.14), transparent 40%, rgba(43,109,255,0.14) 60%, rgba(157,43,255,0.14));
+    mix-blend-mode: color-dodge; pointer-events:none;
+  }
+
+  .headlight-glow{
+    position:absolute; bottom:78px; left:50%; width:260px; height:70px; transform:translateX(-50%);
+    background: radial-gradient(ellipse at center, rgba(245,226,163,0.28), transparent 70%);
+    opacity:0; animation: beamOn 0.6s ease forwards 4.6s;
+    pointer-events:none;
+  }
+  @keyframes beamOn{ to{ opacity:1; } }
+
+  .scroll-cue{
+    position:absolute; bottom:16px; left:50%; transform:translateX(-50%);
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+    opacity:0; animation: fadeIn 1s ease forwards 5.6s, bounce 1.8s ease-in-out infinite 6.6s;
+  }
+  .scroll-cue span{ font-family:'Orbitron', sans-serif; font-size:9px; letter-spacing:3px; color: var(--text-dim); }
+  .scroll-cue .arrow{ width:16px; height:16px; border-left:2px solid var(--gold); border-bottom:2px solid var(--gold); transform:rotate(-45deg); }
+  @keyframes bounce{ 0%,100%{ transform:translate(-50%,0); } 50%{ transform:translate(-50%,8px); } }
+
+  /* ============ قسم البروفايل ============ */
+  .profile-section{
+    position:relative; z-index:3;
+    display:flex; justify-content:center; padding: 40px 16px 80px;
+  }
+
+  .container{ width:100%; max-width:430px; text-align:center; }
+
+  .frame-corner{ position:absolute; width:22px; height:22px; border: 2px solid var(--gold); opacity:0.8; filter: drop-shadow(0 0 5px rgba(212,175,55,0.6)); }
+  .fc-tl{ top:-12px; left:-12px; border-right:none; border-bottom:none; border-color: var(--blue); }
+  .fc-tr{ top:-12px; right:-12px; border-left:none; border-bottom:none; border-color: var(--purple); }
+  .fc-bl{ bottom:-12px; left:-12px; border-right:none; border-top:none; border-color: var(--red); }
+  .fc-br{ bottom:-12px; right:-12px; border-left:none; border-top:none; border-color: var(--gold); }
+
+  .panel{
+    position:relative; padding: 44px 26px 30px;
+    background: linear-gradient(180deg, rgba(212,175,55,0.05), rgba(0,0,0,0.6));
+    border: 1px solid rgba(212,175,55,0.3);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  }
+
+  .gauge-core{ position:relative; width:152px; height:152px; margin: 4px auto 20px; }
+  .gauge-core svg{ position:absolute; inset:0; width:100%; height:100%; transform: rotate(-90deg); }
+  .gauge-track{ fill:none; stroke:rgba(255,255,255,0.08); stroke-width:3; }
+  .gauge-fill{ fill:none; stroke: url(#gaugeGrad); stroke-width:3; stroke-linecap:round; stroke-dasharray:408; stroke-dashoffset:408; transition: stroke-dashoffset 0.15s linear; }
+
+  .avatar{
+    position:absolute; inset:14px; z-index:2; width:calc(100% - 28px); height:calc(100% - 28px);
+    border-radius:50%; object-fit:cover; display:block;
+    box-shadow: 0 0 0 1px rgba(212,175,55,0.4), 0 0 28px rgba(212,175,55,0.35);
+  }
+
+  .name{ font-family:'Orbitron', sans-serif; font-size:19px; font-weight:800; color:#fff; margin-bottom:8px; letter-spacing:1px; }
+
+  .bio{ color: var(--text-dim); font-size:13.5px; margin-bottom:30px; min-height:18px; border-left: 2px solid var(--gold); padding-right:10px; display:inline-block; }
+  .bio .cursor{ display:inline-block; width:7px; height:13px; background: var(--gold); margin-right:2px; animation: blink 0.9s steps(1) infinite; vertical-align:-2px; }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  .links{ display:flex; flex-direction:column; gap:14px; perspective:900px; }
+
+  .link{
+    display:flex; align-items:center; gap:14px; padding:14px 16px;
+    background: rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1);
+    color:#fff; text-decoration:none; font-weight:600; font-size:14.5px;
+    position:relative; overflow:hidden;
+    opacity:0; transform: translateY(70px) scale(0.8) rotateX(25deg);
+    filter: blur(10px);
+    transform-origin:center bottom;
+    transition: border-color 0.25s ease, transform 0.15s ease, background 0.25s ease;
+  }
+  .link.visible{ animation: cineReveal 0.9s cubic-bezier(.16,.9,.24,1) forwards; }
+  @keyframes cineReveal{
+    0%{ opacity:0; transform: translateY(70px) scale(0.8) rotateX(25deg); filter: blur(10px); }
+    60%{ opacity:1; filter: blur(0); }
+    100%{ opacity:1; transform: translateY(0) scale(1) rotateX(0); filter: blur(0); }
+  }
+  .link.visible::after{
+    content:''; position:absolute; inset:0;
+    background: linear-gradient(100deg, transparent, rgba(255,255,255,0.35), transparent);
+    transform: translateX(-140%); animation: sweepOnce 0.9s ease forwards;
+  }
+  @keyframes sweepOnce{ to{ transform: translateX(140%); } }
+
+  .link:active{ transform: scale(0.97); border-color: var(--gold); background: rgba(212,175,55,0.1); box-shadow: 0 0 22px rgba(212,175,55,0.25); }
+
+  .icon{
+    width:46px; height:46px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+    position:relative;
+  }
+  .icon::before{
+    content:''; position:absolute; inset:-3px;
+    clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+    background: inherit; filter: blur(7px); opacity:0.75; z-index:-1;
+  }
+  .icon svg{ width:22px; height:22px; position:relative; z-index:1; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.35)); }
+  .ic-red{ background: linear-gradient(140deg, #ff8399, var(--red) 60%, #6b000f); }
+  .ic-blue{ background: linear-gradient(140deg, #9db8ff, var(--blue) 60%, #0a2a80); }
+  .ic-purple{ background: linear-gradient(140deg, #d9adff, var(--purple) 60%, #3a0a66); }
+  .ic-gold{ background: linear-gradient(140deg, var(--gold-light), var(--gold) 60%, #6b5518); }
+
+  .link-text{ flex:1; text-align:right; }
+  .link-sub{ display:block; font-size:10px; color:var(--text-dim); font-weight:400; margin-top:2px; letter-spacing:0.5px; }
+  .link-arrow{ font-family:'Orbitron', sans-serif; color: var(--gold); font-size:14px; opacity:0.8; }
+
+  .status{ margin-top:26px; display:flex; align-items:center; justify-content:center; gap:8px; font-family:'Orbitron', sans-serif; font-size:9px; letter-spacing:2px; color:var(--text-dim); }
+  .dot{ width:7px; height:7px; border-radius:50%; background:var(--gold); box-shadow:0 0 8px var(--gold); animation: blink 1.4s ease-in-out infinite; }
+
+  .footer{ margin-top:16px; color: var(--text-dim); font-size:11px; opacity:0.6; letter-spacing:1px; }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="streak-canvas"></canvas>
+<div class="vignette"></div>
+<div class="grain"></div>
+<div class="cine-bar cine-top"></div>
+<div class="cine-bar cine-bottom"></div>
+
+<div id="boot">
+  <div class="line">STARTING ENGINE</div>
+  <div class="line">DRIVER: 3LI_BOLTX</div>
+  <div class="line">GRID CONNECTED</div>
+  <div class="line">ACCELERATING...</div>
+  <div class="bar"></div>
+</div>
+
+<section class="hero">
+  <div class="hero-eyebrow">A GLIMPSE FROM THE FUTURE</div>
+  <h1 class="hero-logo">3LI_BOLTX</h1>
+  <p class="hero-sub">كل روابط علي بولتكس — فخامة، سرعة، ومستقبل ⚡</p>
+
+  <div class="road-stage">
+    <div class="road-line"></div>
+    <div class="headlight-glow"></div>
+
+    <div class="wind-layer" id="windLayer"></div>
+
+    <div class="car">
+      <img src="https://images.unsplash.com/photo-1572885804161-758436fcc8bd?fm=jpg&q=80&w=900&auto=format&fit=crop" alt="BMW">
+    </div>
+  </div>
+
+  <div class="scroll-cue">
+    <span>اسحب لتحت</span>
+    <div class="arrow"></div>
+  </div>
+</section>
+
+<section class="profile-section">
+  <div class="container">
+    <div class="panel">
+      <div class="frame-corner fc-tl"></div>
+      <div class="frame-corner fc-tr"></div>
+      <div class="frame-corner fc-bl"></div>
+      <div class="frame-corner fc-br"></div>
+
+      <div class="gauge-core">
+        <svg viewBox="0 0 140 140">
+          <defs>
+            <linearGradient id="gaugeGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#ff1f3d"/>
+              <stop offset="50%" stop-color="#2b6dff"/>
+              <stop offset="100%" stop-color="#9d2bff"/>
+            </linearGradient>
+          </defs>
+          <circle class="gauge-track" cx="70" cy="70" r="65"></circle>
+          <circle class="gauge-fill" id="gaugeFill" cx="70" cy="70" r="65"></circle>
+        </svg>
+        <img src="https://files.kick.com/images/user/51195050/profile_image/conversion/c1d26c69-fb44-479e-a0ed-a1d67bd55eb5-fullsize.webp" alt="3li_boltx" class="avatar">
+      </div>
+
+      <h2 class="name">3li_boltx</h2>
+      <p class="bio"><span class="cursor"></span> كل روابط علي بولتكس ⚡</p>
+
+      <div class="links">
+
+        <a href="https://www.instagram.com/3li_boltx?stkn=MXdrZzN0Mms2bXp4cg==" target="_blank" class="link reveal">
+          <span class="icon ic-red"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.1" fill="#fff" stroke="none"/></svg></span>
+          <span class="link-text">Instagram<span class="link-sub">تابعني على انستغرام</span></span>
+          <span class="link-arrow">◄</span>
+        </a>
+
+        <a href="https://vm.tiktok.com/ZS9SsFtEYxMPr-VvXXU/" target="_blank" class="link reveal">
+          <span class="icon ic-blue"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4v10.5a3.5 3.5 0 1 1-3.5-3.5"/><path d="M14 4c0 3 2.2 5 5 5"/></svg></span>
+          <span class="link-text">TikTok<span class="link-sub">فيديوهاتي الجديدة</span></span>
+          <span class="link-arrow">◄</span>
+        </a>
+
+        <a href="https://discord.gg/KFA7BS4wP" target="_blank" class="link reveal">
+          <span class="icon ic-purple"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="8" width="19" height="10" rx="5"/><line x1="7.5" y1="12" x2="7.5" y2="14"/><line x1="6.5" y1="13" x2="8.5" y2="13"/><circle cx="15.5" cy="12.5" r="1" fill="#fff" stroke="none"/><circle cx="18" cy="14.5" r="1" fill="#fff" stroke="none"/></svg></span>
+          <span class="link-text">Discord<span class="link-sub">انضم للسيرفر</span></span>
+          <span class="link-arrow">◄</span>
+        </a>
+
+        <a href="https://youtube.com/@3liboltx?si=SrM6NvLlBHziaV5A" target="_blank" class="link reveal">
+          <span class="icon ic-red"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5.5" width="19" height="13" rx="4"/><path d="M10.5 9.5l5 2.5-5 2.5z" fill="#fff" stroke="none"/></svg></span>
+          <span class="link-text">YouTube<span class="link-sub">قناتي على يوتيوب</span></span>
+          <span class="link-arrow">◄</span>
+        </a>
+
+        <a href="https://www.whatsapp.com/channel/0029VbB9LtsJUM2UGof3w52a" target="_blank" class="link reveal">
+          <span class="icon ic-blue"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1.3-3.9A8 8 0 1 1 8 19.2z"/><path d="M9 10.3c0 3 2.7 5.7 5.7 5.7.9 0 1.3-.7 1.3-1.3v-.9l-2.2-.7-.8 1c-1-.6-1.9-1.5-2.5-2.5l1-.8-.7-2.2h-.9c-.6 0-1.3.4-1.3 1.3z" fill="#fff" stroke="none"/></svg></span>
+          <span class="link-text">WhatsApp<span class="link-sub">قناة الواتساب</span></span>
+          <span class="link-arrow">◄</span>
+        </a>
+
+        <a href="https://kick.com/3li_boltx" target="_blank" class="link reveal">
+          <span class="icon ic-gold"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 8v8M9 12l4-4M9 12l4 4" fill="none"/></svg></span>
+          <span class="link-text">Kick<span class="link-sub">البث المباشر</span></span>
+          <span class="link-arrow">◄</span>
+        </a>
+
+      </div>
+
+      <div class="status"><span class="dot"></span> SYSTEM ONLINE</div>
+    </div>
+
+    <p class="footer">© 2026 — 3LI_BOLTX // LUXURY MOTION NETWORK</p>
+  </div>
+</section>
+
+<script>
+  // ---------- خطوط سرعة قوية في الخلفية ----------
+  const canvas = document.getElementById('streak-canvas');
+  const ctx = canvas.getContext('2d');
+  let w, h, streaks = [];
+
+  function resize(){
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  const streakColors = ['212,175,55', '255,31,61', '43,109,255', '157,43,255', '207,211,218'];
+  for(let i=0;i<46;i++){
+    streaks.push({
+      y: Math.random()*h,
+      x: Math.random()*w,
+      len: Math.random()*200 + 80,
+      speed: Math.random()*7 + 4,
+      color: streakColors[Math.floor(Math.random()*streakColors.length)],
+      alpha: Math.random()*0.3 + 0.1
+    });
+  }
+
+  let scrollBoost = 0;
+  function drawStreaks(){
+    ctx.clearRect(0,0,w,h);
+    streaks.forEach(s=>{
+      const spd = s.speed + scrollBoost;
+      s.x -= spd;
+      if(s.x < -s.len) s.x = w + Math.random()*100;
+      const grad = ctx.createLinearGradient(s.x, s.y, s.x + s.len, s.y);
+      grad.addColorStop(0, `rgba(${s.color},0)`);
+      grad.addColorStop(0.5, `rgba(${s.color},${s.alpha})`);
+      grad.addColorStop(1, `rgba(${s.color},0)`);
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(s.x, s.y);
+      ctx.lineTo(s.x + s.len, s.y);
+      ctx.stroke();
+    });
+    scrollBoost *= 0.92;
+    requestAnimationFrame(drawStreaks);
+  }
+  requestAnimationFrame(drawStreaks);
+
+  // ---------- خطوط رياح حول السيارة ----------
+  const windLayer = document.getElementById('windLayer');
+  const windColors = ['#f5e2a3', '#ff1f3d', '#2b6dff', '#9d2bff', '#cfd3da'];
+  for(let i=0;i<16;i++){
+    const line = document.createElement('div');
+    line.className = 'wind-line';
+    const top = 20 + Math.random()*150;
+    const width = 60 + Math.random()*90;
+    const color = windColors[Math.floor(Math.random()*windColors.length)];
+    line.style.top = top + 'px';
+    line.style.width = width + 'px';
+    line.style.background = `linear-gradient(90deg, transparent, ${color})`;
+    line.style.animationDelay = (Math.random()*1.1) + 's';
+    line.style.animationDuration = (0.6 + Math.random()*0.5) + 's';
+    windLayer.appendChild(line);
+  }
+
+  // ---------- عداد السرعة + تسارع الرياح مع السحب ----------
+  const gaugeFill = document.getElementById('gaugeFill');
+  const CIRC = 2 * Math.PI * 65;
+  let lastScrollY = window.scrollY;
+
+  function onScroll(){
+    const doc = document.documentElement;
+    const scrollTop = window.scrollY;
+    const max = doc.scrollHeight - doc.clientHeight;
+    const pct = max > 0 ? Math.min(1, scrollTop / max) : 0;
+    gaugeFill.style.strokeDashoffset = CIRC - pct * CIRC;
+
+    const delta = Math.abs(scrollTop - lastScrollY);
+    scrollBoost = Math.min(scrollBoost + delta * 0.22, 30);
+    lastScrollY = scrollTop;
+  }
+  window.addEventListener('scroll', onScroll, { passive:true });
+  onScroll();
+
+  // ---------- ظهور الروابط بشكل سينمائي أثناء النزول ----------
+  const observer = new IntersectionObserver((entries)=>{
+    entries.forEach((entry)=>{
+      if(entry.isIntersecting){
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      } else {
+        entry.target.classList.remove('visible');
+      }
+    });
+  }, { threshold: 0.35 });
+
+  document.querySelectorAll('.reveal').forEach((el, i) => {
+    el.style.transitionDelay = (i * 0.05) + 's';
+    observer.observe(el);
+  });
+</script>
+
+</body>
+</html>
